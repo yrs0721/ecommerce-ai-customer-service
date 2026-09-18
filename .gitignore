@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# PyCharm
+.idea/
+
+# Test cache
+.pytest_cache/
+
+# Logs
+*.log
+
+# Windows
+Thumbs.db!/.gitignore
+!/.env.example
