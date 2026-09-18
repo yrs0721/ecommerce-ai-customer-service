@@ -20,15 +20,15 @@
 
 ### Chat Model
 
-- Provider: [TBD]
-- Model: [TBD]
-- Access Date: [TBD]
+- Provider: Deepseek
+- Model: deepseek-v4-flash
+- Access Date: 2026-9-18
 
 ### Embedding Model
 
-- Provider: [TBD]
-- Model: [TBD]
-- Access Date: [TBD]
+- Provider: 硅基流动
+- Model: Qwen/Qwen3-VL-Embedding-8B
+- Access Date: 2026-9-18
 
 ## Python Dependencies
 
