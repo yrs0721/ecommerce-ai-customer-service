@@ -38,3 +38,11 @@
 
 - Do not use `latest` as the final reproducible deployment version.
 - Record version changes before upgrading.
+
+## Python Dependencies
+
+- FastAPI: 0.141.1
+- Uvicorn: 0.53.0
+- pydantic-settings: 2.15.0
+- pymysql: 1.2.3
+- sqlalchemy: 2.0.54
