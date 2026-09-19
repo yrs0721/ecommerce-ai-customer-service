@@ -1,126 +1,92 @@
-# AI Ecommerce Customer Service
+# 基于 Dify + FastAPI + MySQL 的电商智能客服与售后工单系统
 
-基于 Dify + FastAPI + MySQL + Docker 的 AI 智能电商客服系统。
+这是一个基于 Dify 工作流、RAG 知识库、FastAPI 和 MySQL 实现的电商智能客服项目。
 
-## 项目性质
-
-个人实践 / 求职项目。
-
-本项目用于 AI 项目交付工程师 / FDE / AI 应用开发相关岗位的项目实践。
-
-所有商品、用户、订单、物流和工单均为模拟数据。
-
-本项目不接入真实支付、退款或物流系统，售后仅创建待审核工单。
-
-## 业务场景
-
-虚构一家数码电商，主要销售：
-
-- 耳机
-- 键盘
-- 充电器
-
-## 核心功能
-
-- 商品咨询
-- FAQ 问答
-- 本人订单查询
-- 模拟物流查询
-- 售后预检查
-- 售后工单创建
-- 工单状态查询
-- 异常兜底
-- 权限校验
+项目将静态商品知识、平台 FAQ 与动态订单数据分离处理：
+- 商品信息和 FAQ 使用 Dify RAG 知识库进行检索问答
+- 订单及物流信息通过 FastAPI + MySQL 实时查询
+- 服务端进行订单归属校验，避免越权查询其他用户订单
+- 售后场景支持识别退货、退款、换货、补发等诉求，并创建售后工单
 
 ## 技术栈
 
-- Dify Chatflow
-- Dify Knowledge Base
+- Dify
 - FastAPI
 - MySQL
 - SQLAlchemy
-- Alembic
-- pytest
-- Docker Compose
-- Nginx
-- Git / GitHub
+- Docker
+- Python
+- RAG / Embedding / Rerank
+- Git
 
-## 项目目标
+## 系统架构
 
-实现一个可以：
+```mermaid
+flowchart LR
+    U[用户] --> D[Dify Chatflow]
 
-- 演示
-- 测试
-- 部署
-- 交接
+    D --> C[问题分类器]
 
-的 AI 智能客服练习项目。
+    C --> P[商品咨询]
+    C --> F[FAQ / 平台规则]
+    C --> O[订单物流]
+    C --> A[售后处理]
+    C --> X[其他问题]
 
-核心业务闭环：
+    P --> Q[检索词改写]
+    Q --> PKB[商品知识库 RAG]
+    PKB --> PL[商品回答 LLM]
 
-商品咨询 → 查询本人订单 → 查询物流 → 售后预检查 → 确认草稿 → 创建工单 → 查询工单状态
+    F --> FKB[FAQ 知识库 RAG]
+    FKB --> FL[FAQ 回答 LLM]
 
-## 当前进度
+    O --> OE[订单号提取]
+    OE --> API[FastAPI]
 
-Stage 0 - Environment Setup
+    A --> AE[售后信息提取]
+    AE --> API
+
+    API --> DB[(MySQL)]
+
+    DB --> ORD[users / orders / shipments]
+    DB --> TICKET[after_sale_tickets]
+
+    API --> D
+```
+## MVP 已实现功能
+
+- 商品知识库问答
+- 商品推荐与检索词改写
+- 电商 FAQ 问答
+- 用户意图分类
+- 订单状态查询
+- 物流信息查询
+- 订单归属权限校验
+- 售后意图识别
+- 售后类型与问题类型提取
+- 售后订单归属校验
+- 售后工单创建
+- Dify → FastAPI HTTP 调用
+- HTTP 异常与失败分支处理
+
+## 当前版本
+
+`v0.1.0`
+
+当前版本为第一版可运行 MVP，已完成商品咨询、FAQ、订单物流查询和售后工单创建的完整业务闭环。
 
 ## 订单物流 Excel 导入（MVP）
 
-在项目根目录激活虚拟环境，确认 `.env` 的数据库配置后执行：
+在项目根目录激活虚拟环境，并确认 `.env` 中数据库配置正确后执行：
 
 ```powershell
 python -m scripts.import_order_tracking data/raw/order_tracking_table.xlsx
 ```
+## 快速启动
 
-依赖 `openpyxl` 和项目现有 SQLAlchemy/PyMySQL/pydantic-settings。
-脚本读取首个工作表，校验业务表头，允许并忽略可选的 `index` 列。
-手机号作为模拟 customer 的唯一 username；密码字段使用不可用于登录的
-`!disabled$sha256$` 占位标记，后续认证必须拒绝该标记，设置正式密码后才能登录。
-收货人姓名保存在订单上。金额使用 Decimal，未发货物流的承运商和单号保存为 NULL。
+### 1. 创建并激活虚拟环境
 
-全部业务写入使用一个事务。已有订单的全部导入字段、所属用户和物流均一致时跳过；
-存在冲突或缺失物流时整批回滚，不更新已有订单。Excel 内重复订单号直接报错。
-脚本不会自动建表或修改表结构。新环境可运行 `python -m scripts.create_tables`；
-已有表不会被 create_all 自动升级，应先核对结构。
-
-本次本地数据库的 orders 原先缺少五列，已在确认该表为空后执行以下增量修复，
-其他环境请先检查缺失列和已有数据，不要重复执行：
-
-```sql
-ALTER TABLE orders
-  ADD COLUMN product_name VARCHAR(200) NOT NULL,
-  ADD COLUMN quantity INT NOT NULL,
-  ADD COLUMN receiver_name VARCHAR(50) NOT NULL,
-  ADD COLUMN receiver_phone VARCHAR(20) NOT NULL,
-  ADD COLUMN receiver_address VARCHAR(255) NOT NULL;
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
-
-验证数量和随机已发货订单关联：
-
-```sql
-SELECT COUNT(*) FROM users;
-SELECT COUNT(*) FROM orders;
-SELECT COUNT(*) FROM shipments;
-
-SELECT u.id AS user_id, o.order_no, o.user_id AS order_user_id,
-       o.id AS order_id, s.order_id AS shipment_order_id,
-       s.carrier, s.tracking_no, s.status
-FROM users u
-JOIN orders o ON o.user_id = u.id
-JOIN shipments s ON s.order_id = o.id
-WHERE s.tracking_no IS NOT NULL
-ORDER BY RAND()
-LIMIT 1;
-```
-
-现有 orders.user_id 外键及 shipments.order_id 唯一约束支持用户归属和一对一物流。
-后续 FastAPI 订单查询必须同时限制订单号和**服务端认证获得的**用户 ID：
-
-```python
-select(Order).where(
-    Order.order_no == order_no,
-    Order.user_id == current_user.id,
-)
-```
-
-数据库结构本身不会自动实现接口鉴权，不得使用客户端传入的 user_id 替代认证用户。
